@@ -292,7 +292,7 @@
                 window.speechSynthesis.cancel();
                 const utterance = new SpeechSynthesisUtterance(text);
                 utterance.lang = 'en-US';
-                utterance.rate = 0.75; // ★変更：スピードを0.75に調整
+                utterance.rate = 0.75;
                 utterance.pitch = 1.0;
                 window.speechSynthesis.speak(utterance);
             }
@@ -483,7 +483,6 @@
             isPlaying = true;
             checkBtn.disabled = true;
 
-            // ★追加：音が鳴っても鳴らなくても、確実にフリーズを解除（ロック解除）する関数
             const unlockUI = () => {
                 isPlaying = false;
                 checkBtn.disabled = false;
@@ -493,12 +492,11 @@
                 correctSound.currentTime = 0;
                 let playPromise = correctSound.play();
 
-                // ★追加：iPhone等で音声がブロックされた場合のフリーズ対策
                 if (playPromise !== undefined) {
                     playPromise.then(() => {
-                        correctSound.onended = unlockUI; // 正常に鳴り終わったら解除
+                        correctSound.onended = unlockUI;
                     }).catch(() => {
-                        unlockUI(); // エラー（ミュート等）で鳴らなかった場合も即座に解除！
+                        unlockUI();
                     });
                 }
 
@@ -525,38 +523,6 @@
                 msg.style.color = "var(--error)";
                 drop.className = "drop-area error-bg";
             }
-        }
-        if (isPlaying) return;
-        const drop = document.getElementById(`drop-${idx}`);
-        const msg = document.getElementById(`msg-${idx}`);
-        const checkBtn = document.getElementById(`check-btn-${idx}`);
-        const userAns = Array.from(drop.children).map(t => t.textContent.toLowerCase()).join(' ');
-        const isCorrect = quizData[idx].validAnswers.includes(userAns);
-
-        isPlaying = true;
-        checkBtn.disabled = true;
-
-        if (isCorrect) {
-            correctSound.currentTime = 0;
-            correctSound.play();
-
-            // ★変更：テキストの横に再生ボタン（スピーカーアイコン）を追加
-            msg.innerHTML = `
-                    <span class="power-text">Correct! ✨</span>
-                    <button class="play-audio-btn" onclick="speakText('${userAns}')" title="もう一度聞く">🔊</button>
-                `;
-            drop.className = "drop-area correct-bg";
-            correctSound.onended = () => { isPlaying = false; checkBtn.disabled = false; };
-
-            speakText(userAns);
-        } else {
-            errorSound.currentTime = 0;
-            errorSound.play();
-            msg.textContent = "❌ Try Again!";
-            msg.style.color = "var(--error)";
-            drop.className = "drop-area error-bg";
-            errorSound.onended = () => { isPlaying = false; checkBtn.disabled = false; };
-        }
         }
 
         function reset(idx) {
