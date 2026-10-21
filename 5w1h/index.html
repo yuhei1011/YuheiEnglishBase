@@ -222,10 +222,14 @@
             font-size: 1.3em;
             height: 1.5em;
             text-align: center;
-            display: flex; /* ★追加：アイコンと並べるため */
-            align-items: center; /* ★追加：アイコンと並べるため */
-            justify-content: center; /* ★追加：中央寄せ */
-            gap: 10px; /* ★追加：文字とアイコンの隙間 */
+            display: flex;
+            /* ★追加：アイコンと並べるため */
+            align-items: center;
+            /* ★追加：アイコンと並べるため */
+            justify-content: center;
+            /* ★追加：中央寄せ */
+            gap: 10px;
+            /* ★追加：文字とアイコンの隙間 */
         }
 
         .power-text {
@@ -247,7 +251,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
             transition: transform 0.2s;
         }
 
@@ -287,9 +291,9 @@
             if ('speechSynthesis' in window) {
                 window.speechSynthesis.cancel();
                 const utterance = new SpeechSynthesisUtterance(text);
-                utterance.lang = 'en-US'; 
+                utterance.lang = 'en-US';
                 utterance.rate = 0.75; // ★変更：スピードを0.75に調整
-                utterance.pitch = 1.0;    
+                utterance.pitch = 1.0;
                 window.speechSynthesis.speak(utterance);
             }
         }
@@ -450,7 +454,7 @@
             const drop = document.getElementById(`drop-${qIdx}`);
             const pool = document.getElementById(`pool-${qIdx}`);
             const msg = document.getElementById(`msg-${qIdx}`);
-            const period = document.getElementById(`period-${qIdx}`); 
+            const period = document.getElementById(`period-${qIdx}`);
 
             if (tile.parentElement === pool) drop.appendChild(tile);
             else pool.appendChild(tile);
@@ -464,7 +468,7 @@
                 const isQuestion = questionWords.some(w => firstWord.startsWith(w));
                 period.textContent = isQuestion ? "?" : ".";
             } else {
-                period.textContent = "."; 
+                period.textContent = ".";
             }
         }
 
@@ -479,27 +483,80 @@
             isPlaying = true;
             checkBtn.disabled = true;
 
+            // ★追加：音が鳴っても鳴らなくても、確実にフリーズを解除（ロック解除）する関数
+            const unlockUI = () => {
+                isPlaying = false;
+                checkBtn.disabled = false;
+            };
+
             if (isCorrect) {
                 correctSound.currentTime = 0;
-                correctSound.play();
-                
-                // ★変更：テキストの横に再生ボタン（スピーカーアイコン）を追加
+                let playPromise = correctSound.play();
+
+                // ★追加：iPhone等で音声がブロックされた場合のフリーズ対策
+                if (playPromise !== undefined) {
+                    playPromise.then(() => {
+                        correctSound.onended = unlockUI; // 正常に鳴り終わったら解除
+                    }).catch(() => {
+                        unlockUI(); // エラー（ミュート等）で鳴らなかった場合も即座に解除！
+                    });
+                }
+
                 msg.innerHTML = `
                     <span class="power-text">Correct! ✨</span>
                     <button class="play-audio-btn" onclick="speakText('${userAns}')" title="もう一度聞く">🔊</button>
                 `;
                 drop.className = "drop-area correct-bg";
-                correctSound.onended = () => {isPlaying = false; checkBtn.disabled = false;};
 
                 speakText(userAns);
             } else {
                 errorSound.currentTime = 0;
-                errorSound.play();
+                let playPromise = errorSound.play();
+
+                if (playPromise !== undefined) {
+                    playPromise.then(() => {
+                        errorSound.onended = unlockUI;
+                    }).catch(() => {
+                        unlockUI();
+                    });
+                }
+
                 msg.textContent = "❌ Try Again!";
                 msg.style.color = "var(--error)";
                 drop.className = "drop-area error-bg";
-                errorSound.onended = () => {isPlaying = false; checkBtn.disabled = false;};
             }
+        }
+        if (isPlaying) return;
+        const drop = document.getElementById(`drop-${idx}`);
+        const msg = document.getElementById(`msg-${idx}`);
+        const checkBtn = document.getElementById(`check-btn-${idx}`);
+        const userAns = Array.from(drop.children).map(t => t.textContent.toLowerCase()).join(' ');
+        const isCorrect = quizData[idx].validAnswers.includes(userAns);
+
+        isPlaying = true;
+        checkBtn.disabled = true;
+
+        if (isCorrect) {
+            correctSound.currentTime = 0;
+            correctSound.play();
+
+            // ★変更：テキストの横に再生ボタン（スピーカーアイコン）を追加
+            msg.innerHTML = `
+                    <span class="power-text">Correct! ✨</span>
+                    <button class="play-audio-btn" onclick="speakText('${userAns}')" title="もう一度聞く">🔊</button>
+                `;
+            drop.className = "drop-area correct-bg";
+            correctSound.onended = () => { isPlaying = false; checkBtn.disabled = false; };
+
+            speakText(userAns);
+        } else {
+            errorSound.currentTime = 0;
+            errorSound.play();
+            msg.textContent = "❌ Try Again!";
+            msg.style.color = "var(--error)";
+            drop.className = "drop-area error-bg";
+            errorSound.onended = () => { isPlaying = false; checkBtn.disabled = false; };
+        }
         }
 
         function reset(idx) {
@@ -507,13 +564,13 @@
             const pool = document.getElementById(`pool-${idx}`);
             const msg = document.getElementById(`msg-${idx}`);
             const checkBtn = document.getElementById(`check-btn-${idx}`);
-            const period = document.getElementById(`period-${idx}`); 
+            const period = document.getElementById(`period-${idx}`);
 
             while (drop.firstChild) pool.appendChild(drop.firstChild);
 
             msg.textContent = "";
             drop.className = "drop-area";
-            period.textContent = "."; 
+            period.textContent = ".";
 
             isPlaying = false;
             checkBtn.disabled = false;
