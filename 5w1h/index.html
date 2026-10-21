@@ -472,7 +472,7 @@
             }
         }
 
-        function check(idx) {
+       function check(idx) {
             if (isPlaying) return;
             const drop = document.getElementById(`drop-${idx}`);
             const msg = document.getElementById(`msg-${idx}`);
@@ -488,16 +488,16 @@
                 checkBtn.disabled = false;
             };
 
+            // ★追加の最強安全装置：iPhoneが合図をサボっても、2秒後(2000ミリ秒)には「絶対に」次を押せるように強制解除する
+            setTimeout(unlockUI, 2000);
+
             if (isCorrect) {
+                correctSound.onended = unlockUI; // ★変更：鳴らす前にセットする
                 correctSound.currentTime = 0;
                 let playPromise = correctSound.play();
 
                 if (playPromise !== undefined) {
-                    playPromise.then(() => {
-                        correctSound.onended = unlockUI;
-                    }).catch(() => {
-                        unlockUI();
-                    });
+                    playPromise.catch(unlockUI);
                 }
 
                 msg.innerHTML = `
@@ -508,15 +508,12 @@
 
                 speakText(userAns);
             } else {
+                errorSound.onended = unlockUI; // ★変更：鳴らす前にセットする
                 errorSound.currentTime = 0;
                 let playPromise = errorSound.play();
 
                 if (playPromise !== undefined) {
-                    playPromise.then(() => {
-                        errorSound.onended = unlockUI;
-                    }).catch(() => {
-                        unlockUI();
-                    });
+                    playPromise.catch(unlockUI);
                 }
 
                 msg.textContent = "❌ Try Again!";
